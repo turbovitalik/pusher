@@ -9,6 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class QuestionController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api', ['except' => ['index', 'show']]);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -25,7 +30,9 @@ class QuestionController extends Controller
      */
     public function store(Request $request)
     {
-        return Question::create($request->all());
+        $question = auth()->user()->question()->create($request->all());
+
+        return response(new QuestionResource($question), Response::HTTP_CREATED);
     }
 
     /**
