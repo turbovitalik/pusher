@@ -97011,7 +97011,7 @@ exports = module.exports = __webpack_require__(1)(false);
 
 
 // module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", ""]);
+exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", ""]);
 
 // exports
 
@@ -97051,6 +97051,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
 
 
 
@@ -97069,6 +97072,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         this.getQuestion();
     },
 
+    computed: {
+        loggedIn: function loggedIn() {
+            return User.loggedIn();
+        }
+    },
     methods: {
         getQuestion: function getQuestion() {
             var _this = this;
@@ -97176,7 +97184,7 @@ exports = module.exports = __webpack_require__(1)(false);
 
 
 // module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", ""]);
+exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", ""]);
 
 // exports
 
@@ -97218,11 +97226,32 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony default export */ __webpack_exports__["default"] = ({
     data: function data() {
         return {
-            own: User.own(this.data.user_id)
+            own: User.own(this.data.user_id),
+            replyCount: this.data.replies_count
         };
     },
 
     props: ['data'],
+    created: function created() {
+        var _this = this;
+
+        EventBus.$on('new-reply', function () {
+            _this.replyCount++;
+        });
+
+        Echo.private('App.User.' + User.id()).notification(function (notification) {
+            _this.replyCount++;
+        });
+
+        Echo.channel('deleteReplyChannel').listen('DeleteReplyEvent', function (e) {
+            _this.replyCount--;
+        });
+
+        EventBus.$on('delete-reply', function () {
+            _this.replyCount--;
+        });
+    },
+
     computed: {
         body: function body() {
             return md.parse(this.data.body);
@@ -97230,10 +97259,10 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     },
     methods: {
         destroy: function destroy() {
-            var _this = this;
+            var _this2 = this;
 
             axios.delete('/api/question/' + this.data.slug).then(function (res) {
-                return _this.$router.push('/forum');
+                return _this2.$router.push('/forum');
             }).catch(function (error) {
                 return console.log(error.response.data);
             });
@@ -97283,7 +97312,7 @@ var render = function() {
               _c("v-spacer"),
               _vm._v(" "),
               _c("v-btn", { attrs: { color: "teal", dark: "" } }, [
-                _vm._v(_vm._s(_vm.data.replies_count) + " Replies")
+                _vm._v(_vm._s(_vm.replyCount) + " Replies")
               ])
             ],
             1
@@ -98592,7 +98621,20 @@ var render = function() {
             [
               _c("replies", { attrs: { question: _vm.question } }),
               _vm._v(" "),
-              _c("new-reply", { attrs: { questionSlug: _vm.question.slug } })
+              _vm.loggedIn
+                ? _c("new-reply", {
+                    attrs: { questionSlug: _vm.question.slug }
+                  })
+                : _c(
+                    "div",
+                    { staticClass: "mt-4" },
+                    [
+                      _c("router-link", { attrs: { to: "/login" } }, [
+                        _vm._v("Log in to reply")
+                      ])
+                    ],
+                    1
+                  )
             ],
             1
           )
@@ -105135,7 +105177,7 @@ var User = function () {
         value: function hasToken() {
             var storedToken = __WEBPACK_IMPORTED_MODULE_1__AppStorage__["a" /* default */].getToken();
             if (storedToken) {
-                return __WEBPACK_IMPORTED_MODULE_0__Token__["a" /* default */].isValid(storedToken);
+                return __WEBPACK_IMPORTED_MODULE_0__Token__["a" /* default */].isValid(storedToken) ? true : this.logout();
             }
 
             return false;
@@ -105216,7 +105258,20 @@ var Token = function () {
     }, {
         key: 'decode',
         value: function decode(payload) {
-            return JSON.parse(atob(payload));
+            if (this.isBase64(payload)) {
+                return JSON.parse(atob(payload));
+            }
+
+            return false;
+        }
+    }, {
+        key: 'isBase64',
+        value: function isBase64(str) {
+            try {
+                return btoa(atob(str)).replace(/=/g, "") == str;
+            } catch (e) {
+                return false;
+            }
         }
     }]);
 
